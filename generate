@@ -114,7 +114,7 @@ maybe_build() {
     should_build=false
 
     # check if the configuration for this section has changed
-    config_hash=$($git_config --get-regexp "gen.$section.\\*" | $sha1sum | $awk "{print \$1}")
+    config_hash=$($git_config --get-regexp "^gen.$section." | $sha1sum | $awk "{print \$1}")
     last_config_hash=$(stored_hash "$section" "$config_file")
     if [ ! "$config_hash" == "$last_config_hash" ] ; then
         debug "> config changed"
