@@ -125,6 +125,11 @@ maybe_build() {
     inputs=$($git_config --get-all "gen.$section.in" || echo "")
     input_hashes=()
     for input in $inputs; do
+        if [ ! -f "$input" ] ; then
+            echo "$input: not found"
+            exit 1
+        fi
+
         input_hash=$(hash "$input")
         last_input_hash=$(stored_hash "$section" "$input")
         if [ ! "$input_hash" == "$last_input_hash" ] ; then
@@ -158,6 +163,14 @@ maybe_build() {
         bash -c "$run"
     )
 
+    # make sure all the outputs were produced
+    for output in $outputs; do
+        if [ ! -f "$output" ] ; then
+            echo "$output: not found"
+            exit 1
+        fi
+    done
+
     # update hashes
     store_hash "$section" "$config_file" "$config_hash"
     for v in "${input_hashes[@]}"; do
@@ -165,11 +178,8 @@ maybe_build() {
         hash=${v/*=/}
         store_hash "$section" "$input" "$hash"
     done
-    outputs=$($git_config --get-all "gen.$section.out")
     for output in $outputs; do
-        if [ -f "$output" ] ; then
-            store_hash "$section" "$output" "$(hash "$output")"
-        fi
+        store_hash "$section" "$output" "$(hash "$output")"
     done
 }
 
