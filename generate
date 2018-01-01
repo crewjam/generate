@@ -6,6 +6,42 @@
 # See <http://creativecommons.org/publicdomain/zero/1.0/>.
 #
 # Upstream source: https://github.com/crewjam/generate
+#
+# This is a simple script suitable for facilitating code generation.
+# Unlike make, which relies on timestamps, it precisely tracks the
+# input and output hashes of files so that code generation only runs
+# when it is needed. Unlike some fancier real build systems, this is
+# simple enough to understand easily.
+#
+# To use, create a git-style config file (I like to call mine codegen)
+# and place it in your source tree. It might look something like this:
+#  [gen "bar"]
+#    in = foo_test.go
+#    in = foo.go
+#    out = bar_test.go
+#    out = bar.go
+#    run = ./gen.sh
+#
+#  [gen "date"]
+#    out = date.go
+#    run = (\
+#      echo \"package example\" \n \
+#      echo \"\" \n \
+#      echo \"const date = \\\"$(date)\\\"\") > date.go
+#
+# Each gen section defines a rule that constructs the files listed in out
+# from the files listed in in by running run.
+#
+# After running generate for the first time, you'll see that your file now
+# additional fields that are used to tracking the state of the input and
+# outputs.
+#
+# Pro-tip: You can make your config file executable and use a shebang line
+# at the start to make your generate file directly runable. Then you can
+# just execute the config file directly to perform code generation
+#
+#    #!/usr/bin/env ../generate
+#
 
 set -e
 
@@ -13,6 +49,10 @@ verbose=false
 quiet=false
 
 config_file=${1}
+[ ! -z "$config_file" ] || (
+    echo "usage: $0 <file>"
+    exit 1
+)
 [ -f "$config_file" ] || (
     echo "$config_file: not found"
     exit 1
