@@ -1,0 +1,32 @@
+#!/usr/bin/env ../generate
+
+[gen "foo"]
+	in = foo_test.go
+	in = foo.go
+	out = bar_test.go
+	out = bar.go
+	run = ./make_bar_from_foo.sh
+
+[gen "date"]
+	out = date.go
+	run = (\
+		echo \"package example\" \n \
+		echo \"\" \n \
+		echo \"const date = \\\"$(date)\\\"\") > date.go
+
+[file "./codegen"]
+	foo = 972bd5d1b4f3ed25f0aa7f3c7ea0986f87478c13
+	date = 1d4254a2d8fcb40c0883a2eac149691f8b7ff4d0
+[file "foo_test.go"]
+	foo = 25c275c5a5d2ae07fae59a72cbc4b9241d76ad30
+[file "foo.go"]
+	foo = 890d2531d03cd352e90ef4a5449b64bdf9d2098e
+[file "bar_test.go"]
+	foo = 5c2cc9784f3fe35e10aa47ae61296d69eb0eef1e
+[file "bar.go"]
+	foo = 6dbb71b8a40a734a06aad9e41e44d73db213542a
+[file "date.go"]
+	date = 333e753d9aa29039301fba79c0b46d3453229cd5
+[file "codegen"]
+	foo = d794cbee4a800ae071333f244dd2adb86c9c7fab
+	date = 2bbfcd024db45bd4908809dc564f5a35f2182884

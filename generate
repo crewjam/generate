@@ -1,0 +1,144 @@
+#!/bin/bash
+#
+# CC0
+# To the extent possible under law, the person who associated CC0 with
+# has waived all copyright and related or neighboring rights.
+# See <http://creativecommons.org/publicdomain/zero/1.0/>.
+
+set -e
+
+verbose=false
+quiet=false
+
+config_file=${1}
+[ -f $config_file ] || (
+    echo "$config_file: not found"
+    exit 1
+)
+cd $(dirname $config_file)
+config_file=$(basename $config_file)
+
+sha1sum=$(command -v sha1sum || command -v gsha1sum)
+awk=$(command -v awk)
+git=$(command -v git)
+cut=$(command -v cut)
+uniq=$(command -v uniq)
+egrep=$(command -v egrep)
+git_config="$git config -f $config_file"
+newline="
+"
+
+debug() {
+    if [ "$verbose" == true ] ; then 
+        echo $1
+    fi
+}
+
+info() {
+    if [ ! "$quiet" == true ] ; then
+        echo $1
+    fi
+}
+
+hash() {
+    if [ -f $1 ] ; then
+        $sha1sum $1 | $awk '{print $1}'
+    else 
+        echo "missing"
+    fi
+}
+
+# stored_hash(section, file) retuns the stored hash of the file for the
+# given section
+stored_hash() {
+    section=$1
+    file=$2
+    $git_config --get "file.$file.$section" || echo "unknown"
+}
+
+# store_hash(section, file, hash) stores a hash in the file
+store_hash() {
+    section=$1
+    file=$2
+    hash=$3
+    $git_config --replace-all "file.$file.$section" $hash
+}
+
+# maybe_build(section) builds the section if needed
+maybe_build() {
+    section=$1
+
+    should_build=false
+
+    # check if the configuration for this section has changed
+    config_hash=$($git_config --get-regexp gen.$section.\* | $sha1sum | $awk '{print $1}')
+    last_config_hash=$(stored_hash $section $config_file)
+    if [ ! "$config_hash" == "$last_config_hash" ] ; then
+        debug "> config changed"
+        should_build=true
+    fi
+
+    # check if any of the inputs have changed
+    inputs=$($git_config --get-all gen.$section.in || echo "")
+    input_hashes=()
+    for input in $inputs; do
+        input_hash=$(hash $input)
+        last_input_hash=$(stored_hash $section $input)
+        if [ ! "$input_hash" == "$last_input_hash" ] ; then
+          debug "> input $input changed"
+          should_build=true
+        fi
+        input_hashes+=("$input=$input_hash")
+    done
+
+    # check if any of the outputs have changed
+    outputs=$($git_config --get-all gen.$section.out)
+    for output in $outputs; do
+        output_hash=$(hash $output)
+        last_output_hash=$(stored_hash $section $output)
+        if [ ! "$output_hash" == "$last_output_hash" ] ; then
+          debug "> output $input changed"
+          should_build=true
+        fi
+    done
+
+    if [ $should_build == false ] ; then
+        return
+    fi
+
+    info "$section"
+    run=$($git_config --get "gen.$section.run")
+    (
+        export INPUTS="${inputs/$newline/ }"
+        export OUTPUTS="${outputs/$newline/ }"
+        bash -c "$run"
+    )
+
+    # update hashes
+    store_hash $section $config_file $config_hash
+    for v in "${input_hashes[@]}"; do
+        input=${v/=*/}
+        hash=${v/*=/}
+        store_hash $section $input $hash
+    done
+    outputs=$($git_config --get-all gen.$section.out)
+    for output in $outputs; do
+        if [ -f "$output" ] ; then
+            store_hash $section $output $(hash $output)
+        fi
+    done
+}
+
+main() {
+
+    sections=($(
+        $git_config --list --name-only |\
+        $egrep '^gen' |\
+        $cut -d. -f2 |\
+        $uniq))
+    for section in ${sections[*]}; do 
+        maybe_build $section
+    done
+}
+
+main
