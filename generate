@@ -4,6 +4,8 @@
 # To the extent possible under law, the person who associated CC0 with
 # has waived all copyright and related or neighboring rights.
 # See <http://creativecommons.org/publicdomain/zero/1.0/>.
+#
+# Upstream source: https://github.com/crewjam/generate
 
 set -e
 
