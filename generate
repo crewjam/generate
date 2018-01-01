@@ -42,6 +42,7 @@ info() {
     fi
 }
 
+# hash(file) returns the hash of the file
 hash() {
     if [ -f "$1" ] ; then
         $sha1sum "$1" | $awk "{print \$1}"
@@ -108,6 +109,7 @@ maybe_build() {
         return
     fi
 
+    # run the command
     info "$section"
     run=$($git_config --get "gen.$section.run")
     (
@@ -132,7 +134,6 @@ maybe_build() {
 }
 
 main() {
-
     sections=($(
         $git_config --list --name-only |\
         $egrep '^gen' |\
