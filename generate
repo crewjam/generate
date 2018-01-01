@@ -140,7 +140,7 @@ maybe_build() {
         output_hash=$(hash "$output")
         last_output_hash=$(stored_hash "$section" "$output")
         if [ ! "$output_hash" == "$last_output_hash" ] ; then
-          debug "> output $input changed"
+          debug "> output $output changed"
           should_build=true
         fi
     done
